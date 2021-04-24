@@ -1,7 +1,34 @@
 from tkinter import *
 from tkinter import messagebox
 import random
-import clipboard
+import json
+
+# ---------------------------- PASSWORD FINDER ---------------------------------- #
+def find_password():
+    try:
+        with open("data.json",'r') as file:
+            data = json.load(file)
+            
+    except FileNotFoundError:
+        messagebox.showinfo(title="Oops",message="No Data file found")
+    
+    else:
+        website_name = website_name_entry.get().title()
+            
+        if website_name == "":
+            messagebox.showinfo(title="Oops",message="Please insert the website name")
+        else:
+            if website_name in data:
+                    password = data[website_name]["password"]
+                    email = data[website_name]["email"]
+                    messagebox.showinfo(title="Sensitive Information",message=f"Webiste: {website_name}\n"
+                                                                                  f"Email: {email}\n"
+                                                                                  f"Password: {password}"  )
+            else:
+                messagebox.showinfo(title="Oops",message=f"There is no data for {website_name}")
+                
+
+
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_random_password():
@@ -28,25 +55,45 @@ def generate_random_password():
         window.clipboard_append(password)
     else:
         messagebox.showinfo(title="Oops",message="The field already contains the password.")
+        password_entry.delete(0,'end')
              
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 def save_to_file():
-    website_name = website_name_entry.get()
+    website_name = website_name_entry.get().title()
     user_email = email_label_entry.get()
     user_password = password_entry.get()
     
-    if website_name != "" and user_password != "":
+    new_data = {
+        website_name : {
+            "email": user_email,
+            "password": user_password
+        }
+    }
+    
+    if website_name != "" and user_password != "" and email_label_entry!= "":
     
         is_ok = messagebox.askokcancel(title=website_name,message=f"These are the details entered: \n"
                                                                     f"Email: {user_email}\n"
                                                                     f"Password: {user_password}\n"
                                                                     f"is it okay to save?")
-        if is_ok:   
-            with open("data.txt",'a') as file:
-                file.write(f"{website_name} | {user_email} | {user_password}\n\n")
-            website_name_entry.delete(0,'end')
-            password_entry.delete(0,'end')
+        if is_ok:
+            try:   
+                with open("data.json",'r') as file:
+                    data = json.load(file)
+            except FileNotFoundError:
+                with open("data.json",'w') as file:
+                    json.dump(new_data,file,indent=4)
+            else:
+                if website_name in data:
+                    messagebox.showinfo(title="Oops",message=f"{website_name} details already exists in the database.")
+                else:
+                    data.update(new_data)
+                    with open("data.json",'w') as file:
+                        json.dump(data,file,indent=4)
+            finally:
+                website_name_entry.delete(0,'end')
+                password_entry.delete(0,'end')
     else:
         messagebox.showinfo(title="Oops",message="Please do not leave any field empty")
 
@@ -64,15 +111,18 @@ canvas.grid(row=0,column=1)
 website_name_label = Label(text="Website:")
 website_name_label.grid(row=1,column=0)
 
-website_name_entry = Entry(width=45)
+website_name_entry = Entry(width=25)
 website_name_entry.focus()
-website_name_entry.grid(row=1,column=1,columnspan=2)
+website_name_entry.grid(row=1,column=1)
+
+search_button = Button(text="Search",width=16,command=find_password)
+search_button.grid(row=1,column=2)
 
 email_label = Label(text="Email/Username:")
 email_label.grid(row=2,column=0)
 
 email_label_entry = Entry(width=45)
-email_label_entry.insert(0,"saleem@gmail.com")
+email_label_entry.insert(0,"Insert your email here.")
 email_label_entry.grid(row=2,column=1,columnspan=2)
 #email_label.config(pady=10)
 
@@ -82,7 +132,7 @@ password_label.grid(row=3,column=0)
 password_entry = Entry(width=25)
 password_entry.grid(row=3,column=1)
 
-generate_password_button = Button(text="Generate Password:",command=generate_random_password)
+generate_password_button = Button(text="Generate Password",command=generate_random_password)
 generate_password_button.grid(row=3,column=2)
 
 
